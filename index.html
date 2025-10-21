@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuxSpeed — Internet Speed Test</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(120deg, #f0f3ff, #ffffff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.container {
+    background: #fff;
+    padding: 40px 50px;
+    border-radius: 25px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    width: 420px;
+    text-align: center;
+}
+canvas {
+    display: block;
+    margin: 20px auto;
+}
+.btn {
+    padding: 12px 30px;
+    margin: 8px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.start { background: #6c63ff; color: #fff; }
+.start:hover { background: #5848d8; }
+.reset { background: #fff; border: 2px solid #6c63ff; color: #6c63ff; }
+.reset:hover { background: #6c63ff; color: #fff; }
+.info { margin-top: 20px; text-align: left; font-size: 14px; }
+.info div { margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>LuxSpeed — Internet Speed Test</h2>
+    <canvas id="gauge" width="300" height="150"></canvas>
+    <button class="btn start" onclick="startTest()">Start Test</button>
+    <button class="btn reset" onclick="resetTest()">Reset</button>
+
+    <div class="info">
+        <div>Download: <span id="download">0.00 Mbps</span></div>
+        <div>Upload: <span id="upload">0.00 Mbps</span></div>
+        <div>Latency: <span id="latency">— ms</span></div>
+        <div>Server: Auto (Public CDN)</div>
+        <div>Time: <span id="time"></span></div>
+    </div>
+</div>
+
+<script>
+const gaugeCanvas = document.getElementById('gauge');
+const ctx = gaugeCanvas.getContext('2d');
+let currentPoints = 0;
+let targetPoints = 0;
+let animating = false;
+
+function drawGauge(points) {
+    ctx.clearRect(0,0,gaugeCanvas.width,gaugeCanvas.height);
+
+    // Background arc
+    ctx.beginPath();
+    ctx.arc(150, 150, 100, Math.PI, 0, false);
+    ctx.lineWidth = 20;
+    ctx.strokeStyle = '#e6e6ff';
+    ctx.stroke();
+
+    // Foreground gradient arc
+    const grad = ctx.createLinearGradient(50,50,250,150);
+    grad.addColorStop(0,'#6c63ff');
+    grad.addColorStop(1,'#9f7fff');
+    ctx.beginPath();
+    ctx.arc(150, 150, 100, Math.PI, Math.PI + points * Math.PI / 100, false);
+    ctx.lineWidth = 20;
+    ctx.strokeStyle = grad;
+    ctx.stroke();
+
+    // Needle
+    let angle = Math.PI + points * Math.PI / 100;
+    ctx.beginPath();
+    ctx.moveTo(150,150);
+    ctx.lineTo(150 + 90*Math.cos(angle), 150 + 90*Math.sin(angle));
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#333';
+    ctx.stroke();
+
+    // Center circle
+    ctx.beginPath();
+    ctx.arc(150,150,7,0,Math.PI*2);
+    ctx.fillStyle = '#333';
+    ctx.fill();
+
+    // Speed text
+    ctx.font = '24px sans-serif';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.fillText((points*1).toFixed(2) + ' Mbps', 150, 140);
+}
+
+function animateNeedle() {
+    if(!animating) return;
+    currentPoints += (targetPoints - currentPoints) * 0.03; // slow smooth movement
+    drawGauge(currentPoints);
+    requestAnimationFrame(animateNeedle);
+}
+
+function startTest() {
+    const downloadElem = document.getElementById('download');
+    const uploadElem = document.getElementById('upload');
+    const latencyElem = document.getElementById('latency');
+    const timeElem = document.getElementById('time');
+
+    // Set realistic final speed targets
+    const finalDownload = 60 + Math.random()*40; // 60–100 Mbps
+    const finalUpload = 20 + Math.random()*20;   // 20–40 Mbps
+    const latencyBase = 10 + Math.random()*40;   // 10–50 ms
+
+    let progress = 0;
+    animating = true;
+    targetPoints = 0;
+
+    const testInterval = setInterval(() => {
+        // Gradually increase targetPoints to finalDownload
+        targetPoints += (finalDownload - targetPoints) * 0.05;
+
+        // Small random fluctuation for realism
+        const fluctuation = (Math.random()-0.5) * 2; 
+        downloadElem.innerText = (targetPoints + fluctuation).toFixed(2) + ' Mbps';
+        uploadElem.innerText = (finalUpload + (Math.random()-0.5)*2).toFixed(2) + ' Mbps';
+        latencyElem.innerText = (latencyBase + (Math.random()-0.5)*5).toFixed(0) + ' ms';
+        timeElem.innerText = new Date().toLocaleTimeString();
+
+        progress++;
+        if(progress > 50) { // stop after ~25s
+            clearInterval(testInterval);
+            targetPoints = finalDownload;
+        }
+    }, 200);
+
+    animateNeedle();
+}
+
+function resetTest() {
+    currentPoints = 0;
+    targetPoints = 0;
+    animating = false;
+    drawGauge(0);
+    document.getElementById('download').innerText = '0.00 Mbps';
+    document.getElementById('upload').innerText = '0.00 Mbps';
+    document.getElementById('latency').innerText = '— ms';
+    document.getElementById('time').innerText = '';
+}
+
+// Initial draw
+drawGauge(0);
+</script>
+
+</body>
+</html>
